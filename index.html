@@ -37,6 +37,24 @@
             min-height: 100vh;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            position: relative;
+        }
+
+        /* Neural Network Background */
+        #neural-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        header, main, footer {
+            position: relative;
+            z-index: 1;
         }
 
         /* Header */
@@ -1056,6 +1074,7 @@
     </style>
 </head>
 <body>
+    <canvas id="neural-canvas"></canvas>
     <header>
         <div class="header-content">
             <div class="logo">
@@ -1776,8 +1795,85 @@
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // NEURAL NETWORK BACKGROUND ANIMATION
+        // ═══════════════════════════════════════════════════════════
+        
+        const neuralCanvas = document.getElementById('neural-canvas');
+        const ctx = neuralCanvas.getContext('2d');
+        let nodes = [];
+        let animationId;
+
+        function resizeCanvas() {
+            neuralCanvas.width = window.innerWidth;
+            neuralCanvas.height = window.innerHeight;
+            initNodes();
+        }
+
+        function initNodes() {
+            nodes = [];
+            const numNodes = Math.floor((neuralCanvas.width * neuralCanvas.height) / 15000);
+            
+            for (let i = 0; i < numNodes; i++) {
+                nodes.push({
+                    x: Math.random() * neuralCanvas.width,
+                    y: Math.random() * neuralCanvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        function drawNeural() {
+            ctx.clearRect(0, 0, neuralCanvas.width, neuralCanvas.height);
+            
+            // Update and draw nodes
+            nodes.forEach((node, i) => {
+                // Move nodes
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Bounce off edges
+                if (node.x < 0 || node.x > neuralCanvas.width) node.vx *= -1;
+                if (node.y < 0 || node.y > neuralCanvas.height) node.vy *= -1;
+                
+                // Draw node
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fill();
+                
+                // Draw connections
+                nodes.forEach((otherNode, j) => {
+                    if (i === j) return;
+                    const dx = node.x - otherNode.x;
+                    const dy = node.y - otherNode.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 150) {
+                        ctx.beginPath();
+                        ctx.moveTo(node.x, node.y);
+                        ctx.lineTo(otherNode.x, otherNode.y);
+                        const opacity = (1 - distance / 150) * 0.3;
+                        ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                });
+            });
+            
+            animationId = requestAnimationFrame(drawNeural);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            // Start neural network
+            resizeCanvas();
+            drawNeural();
+            
             // Initial fetch
             fetchMarketCap();
             initScrollAnimations();
